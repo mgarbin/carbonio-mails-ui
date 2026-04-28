@@ -63,8 +63,8 @@ importers:
         specifier: 3.36.0
         version: 3.36.0
       darkreader:
-        specifier: 4.9.79
-        version: 4.9.79
+        specifier: 4.9.117
+        version: 4.9.117
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
@@ -1854,14 +1854,14 @@ packages:
   '@rolldown/pluginutils@1.0.0-rc.3':
     resolution: {integrity: sha512-eybk3TjzzzV97Dlj5c+XrBFW57eTNhzod66y9HrBlzJ6NsCrWCp/2kaPS3K9wJmurBC0Tdw4yPjXKZqlznim3Q==}
 
-  '@rollup/rollup-linux-x64-gnu@4.56.0':
-    resolution: {integrity: sha512-MVC6UDp16ZSH7x4rtuJPAEoE1RwS8N4oK9DLHy3FTEdFoUTCFVzMfJl/BVJ330C+hx8FfprA5Wqx4FhZXkj2Kw==}
+  '@rollup/rollup-linux-x64-gnu@4.53.3':
+    resolution: {integrity: sha512-3EhFi1FU6YL8HTUJZ51imGJWEX//ajQPfqWLI3BQq4TlvHy4X0MOr5q3D2Zof/ka0d5FNdPwZXm3Yyib/UEd+w==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@rollup/rollup-win32-x64-msvc@4.56.0':
-    resolution: {integrity: sha512-H8AE9Ur/t0+1VXujj90w0HrSOuv0Nq9r1vSZF2t5km20NTfosQsGGUXDaKdQZzwuLts7IyL1fYT4hM95TI9c4g==}
+  '@rollup/rollup-win32-x64-msvc@4.53.3':
+    resolution: {integrity: sha512-UhTd8u31dXadv0MopwGgNOBpUVROFKWVQgAg5N1ESyCz8AuBcMqm4AuTjrwgQKGDfoFuz02EuMRHQIw/frmYKQ==}
     cpu: [x64]
     os: [win32]
 
@@ -3493,11 +3493,8 @@ packages:
     resolution: {integrity: sha512-wAV9QHOsNbwnWdNW2FYvE1P56wtgSbM+3SZcdGiWQILwVjACCXDCI3Ai8QlCjMDB8YK5zySiXZYBiwGmNY3lnw==}
     engines: {node: '>=12'}
 
-  darkreader@4.9.120:
-    resolution: {integrity: sha512-BYjP9rsFzwtO2KDXfzqGZHBfo9LAp7azyRR4UIj0/n8uls0C0J08Rhh5g05BZU/CARvDmMf+LQXM9PoPxO1M4A==}
-
-  darkreader@4.9.79:
-    resolution: {integrity: sha512-FZ/8qP2WuZ3eJTFhaTIoQhTW/OdwBZLbh6Rsl0BjSXXLvl2VNEqQ5C/uBFtcJPtnYMH1xgbQAjzzz68s/FS8Ng==}
+  darkreader@4.9.117:
+    resolution: {integrity: sha512-owxRPqEsL/jsV6YHbGjpy+pGy+AeOSHguHk3QUAXdgVFJH//vlX3uFxvPqW7btwS+VdIdrV2DaH9DCKgSYROWA==}
 
   data-urls@3.0.2:
     resolution: {integrity: sha512-Jy/tj3ldjZJo63sVAvg6LHt2mHvl4V6AgRAmNDtLdm7faqtsx+aJG42rsyCo9JCoRVKwPFzKlIPx3DIibwSIaQ==}
@@ -9317,10 +9314,10 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-rc.3': {}
 
-  '@rollup/rollup-linux-x64-gnu@4.56.0':
+  '@rollup/rollup-linux-x64-gnu@4.53.3':
     optional: true
 
-  '@rollup/rollup-win32-x64-msvc@4.56.0':
+  '@rollup/rollup-win32-x64-msvc@4.53.3':
     optional: true
 
   '@rtsao/scc@1.1.0': {}
@@ -10275,7 +10272,7 @@ snapshots:
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.28)(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)
       '@floating-ui/dom': 1.7.6
       core-js: 3.49.0
-      darkreader: 4.9.120
+      darkreader: 4.9.117
       date-fns: 4.1.0
       lodash: 4.17.21
       polished: 4.3.1
@@ -10289,7 +10286,7 @@ snapshots:
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.28)(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)
       '@floating-ui/dom': 1.7.6
       core-js: 3.49.0
-      darkreader: 4.9.120
+      darkreader: 4.9.117
       date-fns: 4.1.0
       lodash: 4.17.21
       polished: 4.3.1
@@ -10326,7 +10323,7 @@ snapshots:
       '@fontsource/roboto': 5.2.10
       '@zextras/carbonio-ui-soap-lib': 1.1.0
       core-js: 3.49.0
-      darkreader: 4.9.79
+      darkreader: 4.9.117
       date-fns: 4.1.0
       i18next: 22.5.1
       i18next-chained-backend: 4.6.3
@@ -10354,7 +10351,7 @@ snapshots:
       '@fontsource/roboto': 5.2.10
       '@zextras/carbonio-ui-soap-lib': 1.1.0
       core-js: 3.36.0
-      darkreader: 4.9.79
+      darkreader: 4.9.117
       date-fns: 4.1.0
       i18next: 22.5.1
       i18next-chained-backend: 4.6.3
@@ -11329,14 +11326,12 @@ snapshots:
 
   dargs@8.1.0: {}
 
-  darkreader@4.9.120:
+  darkreader@4.9.117:
     dependencies:
       malevic: 0.20.2
     optionalDependencies:
-      '@rollup/rollup-linux-x64-gnu': 4.56.0
-      '@rollup/rollup-win32-x64-msvc': 4.56.0
-
-  darkreader@4.9.79: {}
+      '@rollup/rollup-linux-x64-gnu': 4.53.3
+      '@rollup/rollup-win32-x64-msvc': 4.53.3
 
   data-urls@3.0.2:
     dependencies:
