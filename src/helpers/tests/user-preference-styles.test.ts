@@ -6,6 +6,7 @@
  *
  * SPDX-License-Identifier: AGPL-3.0-only
  */
+import { TINYMCE_BASE_CONTENT_STYLES } from '../../constants/tinymce-content-styles';
 import {
 	applyUserPreferenceStyles,
 	generateUserPreferenceStyles,
@@ -409,6 +410,41 @@ describe('user-preference-styles', () => {
 	});
 
 	describe('edge cases', () => {
+		it('should preserve user-set table width after round-trip through base content styles', () => {
+			// Simulates the saveEditor() flow: user resizes a table to 50%, then the editor
+			// saves the content through applyUserPreferenceStyles with TINYMCE_BASE_CONTENT_STYLES.
+			// The table's inline width must not be overridden by the base CSS rule.
+			const content = '<table style="width: 50%;"><tr><td>Cell</td></tr></table>';
+			const style: UserPreferenceStyle = {
+				font: 'Arial, sans-serif',
+				fontSize: '12pt',
+				color: '#000000'
+			};
+
+			const result = applyUserPreferenceStyles(content, style, TINYMCE_BASE_CONTENT_STYLES);
+
+			expect(result).toContain('Cell');
+			// The user-set 50% width must survive the round-trip
+			expect(result).toContain('width: 50%');
+			// The base style must NOT have force-applied width: 100% onto the table
+			expect(result).not.toMatch(/<table[^>]*style="[^"]*width:\s*100%/);
+		});
+
+		it('should not force width: 100% onto a table without an explicit width', () => {
+			// A freshly inserted table (no inline width) must not get width: 100% inlined
+			// by juice, which would lock the user out of resizing it later.
+			const content = '<table><tr><td>Cell</td></tr></table>';
+			const style: UserPreferenceStyle = {
+				font: undefined,
+				fontSize: undefined,
+				color: undefined
+			};
+
+			const result = applyUserPreferenceStyles(content, style, TINYMCE_BASE_CONTENT_STYLES);
+
+			expect(result).toContain('Cell');
+			expect(result).not.toMatch(/<table[^>]*style="[^"]*width:\s*100%/);
+		});
 		it('should handle malformed HTML gracefully', () => {
 			const content = '<p>Unclosed paragraph<div>Nested div</p></div>';
 			const style: UserPreferenceStyle = {
