@@ -292,6 +292,13 @@ export const RichTextEditorContainer = ({
 				'visualblocks', // Show block boundaries
 				'emoticons' // Emoji support
 			],
+			// Enable column/row resize bars inside tables.
+			// The Composer component sets object_resizing: 'img' by default.
+			// TinyMCE 6 only activates table resize bars when object_resizing
+			// includes 'table' (see hasTableObjectResizing in model.js).
+			// Without 'table' here, TableResize.create() is never called and
+			// column/row resize handles never appear.
+			object_resizing: 'table,img',
 			table_resize_bars: true,
 			table_sizing_mode: 'relative',
 			toolbar: [
