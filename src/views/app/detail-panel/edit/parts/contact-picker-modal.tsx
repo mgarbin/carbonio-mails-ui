@@ -100,7 +100,7 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({
 	}, []);
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const debouncedFetch = useCallback(debounce(fetchContacts, 300), [fetchContacts]);
+	const debouncedFetch = useMemo(() => debounce(fetchContacts, 300), [fetchContacts]);
 
 	useEffect(() => {
 		fetchContacts('');
@@ -336,7 +336,7 @@ export const ContactPickerModal: FC<ContactPickerModalProps> = ({
 								mainAlignment="flex-start"
 							>
 								<Chip
-									label={contact.displayName || contact.email}
+									label={contact.displayName ?? contact.email}
 									onClose={(): void => removeFromSelected(contact.email)}
 									data-testid={`contact-picker-selected-${contact.email}`}
 								/>

@@ -134,8 +134,7 @@ export const RecipientsRow: FC<RecipientsRowProps> = ({
 					email: r.address,
 					displayName: r.name ?? r.address
 				})),
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[]
+		[recipients]
 	);
 
 	const onPickerConfirm = useCallback(
