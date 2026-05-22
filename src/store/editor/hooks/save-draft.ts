@@ -156,13 +156,13 @@ export const useSaveDraftFromEditor = (
 
 				if (
 					lastScheduledTimestamp !== undefined &&
-					now.getTime() <= lastScheduledTimestamp.getTime() + TIMEOUTS.DRAFT_SAVE_MIN_INTERVAL
+					now.getTime() < lastScheduledTimestamp.getTime() + TIMEOUTS.DRAFT_SAVE_MIN_INTERVAL
 				) {
 					return;
 				}
 
 				useEditorsStore.getState().setDraftSaveProcessStatus(editorId, {
-					status: existingStatus?.status ?? 'running',
+					status: existingStatus?.status ?? 'completed',
 					...existingStatus,
 					lastScheduledTimestamp: now
 				});
