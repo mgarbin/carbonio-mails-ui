@@ -26,6 +26,11 @@ export type SaveDraftOptions = {
 
 export type SaveDraftFunction = (options?: SaveDraftOptions) => void;
 
+export type GuardedDebouncedSaveDraftFunction = SaveDraftFunction & {
+	cancel: () => void;
+	flush: () => void;
+};
+
 function getDraftSaveDelay(): number {
 	const maximumDraftSaveDelay = TIMEOUTS.DRAFT_SAVE_DELAY;
 	const autoSaveDraftSettings = getUserSettings().prefs.zimbraPrefAutoSaveDraftInterval as string;
@@ -52,7 +57,7 @@ function getDraftSaveDelay(): number {
 export const useSaveDraftFromEditor = (
 	editorId: MailsEditorV2['id']
 ): {
-	debouncedSaveDraft: ReturnType<typeof debounce<SaveDraftFunction>>;
+	debouncedSaveDraft: GuardedDebouncedSaveDraftFunction;
 	immediateSaveDraft: SaveDraftFunction;
 } => {
 	const { createSnackbar } = useUiUtilities();
@@ -139,13 +144,44 @@ export const useSaveDraftFromEditor = (
 	);
 
 	const delay = getDraftSaveDelay();
-	return useMemo(
-		() => ({
-			debouncedSaveDraft: debounce(saveDraftFromEditor, delay),
+	return useMemo(() => {
+		const lodashDebouncedFn = debounce(saveDraftFromEditor, delay);
+
+		const debouncedSaveDraft: GuardedDebouncedSaveDraftFunction = Object.assign(
+			(options?: SaveDraftOptions): void => {
+				const now = new Date();
+				const existingStatus =
+					useEditorsStore.getState().editors[editorId]?.draftSaveProcessStatus;
+				const lastScheduledTimestamp = existingStatus?.lastScheduledTimestamp;
+
+				if (
+					lastScheduledTimestamp !== undefined &&
+					now.getTime() <= lastScheduledTimestamp.getTime() + TIMEOUTS.DRAFT_SAVE_MIN_INTERVAL
+				) {
+					return;
+				}
+
+				useEditorsStore.getState().setDraftSaveProcessStatus(editorId, {
+					status: existingStatus?.status ?? 'running',
+					...existingStatus,
+					lastScheduledTimestamp: now
+				});
+
+				lodashDebouncedFn(options);
+			},
+			{
+				cancel: (): void => lodashDebouncedFn.cancel(),
+				flush: (): void => {
+					lodashDebouncedFn.flush();
+				}
+			}
+		);
+
+		return {
+			debouncedSaveDraft,
 			immediateSaveDraft: saveDraftFromEditor
-		}),
-		[delay, saveDraftFromEditor]
-	);
+		};
+	}, [delay, editorId, saveDraftFromEditor]);
 };
 
 /**

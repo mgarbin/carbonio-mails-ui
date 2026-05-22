@@ -93,6 +93,7 @@ export type DraftSaveProcessStatus = {
 	status: 'completed' | 'running' | 'aborted';
 	abortReason?: string;
 	lastSaveTimestamp?: Date;
+	lastScheduledTimestamp?: Date;
 };
 
 export type SendProcessStatus = {
