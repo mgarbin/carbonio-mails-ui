@@ -87,11 +87,14 @@ export type EditViewHandle = {
 function evaluateSendDisabledReason(
 	invalidRecipientsPresent: boolean,
 	sendAllowedStatus: EditorOperationAllowedStatus | undefined,
-	firstDraftSaveProcessCompleted?: string
+	firstDraftSaveProcessCompleted?: string,
+	hasUploadInProgress?: boolean
 ): string | undefined {
 	let sendDisabledReason;
 	if (invalidRecipientsPresent) {
 		sendDisabledReason = t('label.invalid_recipients', `One or more recipients are invalid`);
+	} else if (hasUploadInProgress) {
+		sendDisabledReason = t('editView.footer.uploadInProgress', 'Upload in progress...');
 	} else if (firstDraftSaveProcessCompleted !== 'completed') {
 		sendDisabledReason = t('editView.footer.draftSaving', 'Saving draft in progress...');
 	} else {
@@ -625,12 +628,23 @@ export const EditView = React.forwardRef<EditViewHandle, EditViewProp>(function 
 		close(EDIT_VIEW_CLOSING_REASONS.DRAFT_DELETED);
 	}, [close]);
 
-	const sendDisabled = !sendAllowedStatus?.allowed || invalidRecipientsPresent || draftSaveProcessStatus?.status !== 'completed';
+	const hasUploadInProgress = useEditorsStore((state) =>
+		state.editors[editorId]?.unsavedAttachments.some(
+			(attachment) => attachment.uploadStatus?.status === 'running'
+		)
+	);
+
+	const sendDisabled =
+		!sendAllowedStatus?.allowed ||
+		invalidRecipientsPresent ||
+		hasUploadInProgress ||
+		draftSaveProcessStatus?.status !== 'completed';
 
 	const sendDisabledReason = evaluateSendDisabledReason(
 		invalidRecipientsPresent,
 		sendAllowedStatus,
-		draftSaveProcessStatus?.status
+		draftSaveProcessStatus?.status,
+		hasUploadInProgress
 	);
 
 	return (

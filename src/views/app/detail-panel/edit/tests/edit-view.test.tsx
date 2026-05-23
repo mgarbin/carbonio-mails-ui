@@ -300,6 +300,70 @@ describe('Edit view', () => {
 			expect(await screen.findByText(invalidEmailAddress)).toBeVisible();
 			expect(await screen.findByRole('button', { name: /label\.send/i })).toBeDisabled();
 		});
+
+		test('when a standard attachment upload is in progress', async () => {
+			const editor: MailsEditorV2 = generateNewEditor({
+				unsavedAttachments: [
+					{
+						filename: 'file.txt',
+						contentType: 'text/plain',
+						size: 100,
+						isInline: false,
+						uploadId: 'upload-id-1',
+						uploadStatus: { status: 'running', progress: 50 }
+					}
+				]
+			});
+			setupEditorStore({ editors: [editor] });
+
+			setupTest(<EditView editorId={editor.id} closeController={noop} />);
+
+			expect(await screen.findByRole('button', { name: /label\.send/i })).toBeDisabled();
+		});
+
+		test('when an inline attachment upload is in progress', async () => {
+			const editor: MailsEditorV2 = generateNewEditor({
+				unsavedAttachments: [
+					{
+						filename: 'image.png',
+						contentType: 'image/png',
+						size: 200,
+						isInline: true,
+						contentId: 'upload-id-2@carbonio',
+						uploadId: 'upload-id-2',
+						uploadStatus: { status: 'running', progress: 30 }
+					}
+				]
+			});
+			setupEditorStore({ editors: [editor] });
+
+			setupTest(<EditView editorId={editor.id} closeController={noop} />);
+
+			expect(await screen.findByRole('button', { name: /label\.send/i })).toBeDisabled();
+		});
+
+		test('and shows upload in progress tooltip when a standard attachment upload is in progress', async () => {
+			const editor: MailsEditorV2 = generateNewEditor({
+				unsavedAttachments: [
+					{
+						filename: 'file.txt',
+						contentType: 'text/plain',
+						size: 100,
+						isInline: false,
+						uploadId: 'upload-id-1',
+						uploadStatus: { status: 'running', progress: 50 }
+					}
+				]
+			});
+			setupEditorStore({ editors: [editor] });
+
+			const { user } = setupTest(<EditView editorId={editor.id} closeController={noop} />);
+			await user.hover(getSendButton());
+
+			const tooltip = await screen.findByTestId('tooltip');
+			expect(tooltip).toBeInTheDocument();
+			expect(tooltip).toHaveTextContent(/editView.footer.uploadInProgress/);
+		});
 	});
 
 	describe('Mail creation', () => {
