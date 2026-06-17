@@ -128,28 +128,29 @@ const sendFromEditor = (
 	cancelableTimer.promise
 		.then(async() => {
 			options?.onSendProcess && options.onSendProcess();
-			if (!editorExist.draftSaveProcessStatus?.lastSaveTimestamp) {
-				await saveDraftEmailStoreAction({ editor: editorExist })
+			const editor = getEditor({ id: editorId });
+			if (editor && !editor?.draftSaveProcessStatus?.lastSaveTimestamp) {
+				await saveDraftEmailStoreAction({ editor: editor })
 					.then((res) => {
 						if (res.m?.[0]?.id) {
 							const mailMessage = normalizeMailMessageFromSoap(res.m[0], true);
-							useEditorsStore.getState().setDid(editorExist.id, mailMessage.id);
-							useEditorsStore.getState().setSize(editorExist.id, mailMessage.size);
-							useEditorsStore.getState().removeUnsavedAttachments(editorExist.id);
+							useEditorsStore.getState().setDid(editor.id, mailMessage.id);
+							useEditorsStore.getState().setSize(editor.id, mailMessage.size);
+							useEditorsStore.getState().removeUnsavedAttachments(editor.id);
 							const savedAttachments = buildSavedAttachments(mailMessage);
 
-							useEditorsStore.getState().setSavedAttachments(editorExist.id, savedAttachments);
-							useEditorsStore.getState().setDraftSaveProcessStatus(editorExist.id, {
+							useEditorsStore.getState().setSavedAttachments(editor.id, savedAttachments);
+							useEditorsStore.getState().setDraftSaveProcessStatus(editor.id, {
 								status: 'completed',
 								lastSaveTimestamp: new Date()
 							});
-							computeAndUpdateEditorStatus(editorExist.id);
+							computeAndUpdateEditorStatus(editor.id);
 						}
 					})
 			}
-			const editor = getEditor({ id: editorId });
-			if (editor?.identityId) {
-				sendMsgFromEditor({ editor })
+			const editor2 = getEditor({ id: editorId });
+			if (editor2?.identityId) {
+				sendMsgFromEditor({ editor: editor2 })
 					.then((res) => {
 						if (res && 'm' in res) {
 							useEditorsStore.getState().setSendProcessStatus(editorId, {
