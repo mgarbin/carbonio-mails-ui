@@ -24,7 +24,16 @@ vi.mock('store/editor');
 const createMockEditor = (): Editor =>
 	({
 		insertContent: vi.fn(),
-		setProgressState: vi.fn()
+		setProgressState: vi.fn(),
+		parser: {
+			parse: vi.fn((html: string) => ({ html }))
+		},
+		serializer: {
+			serialize: vi.fn((_node: unknown) => {
+				// Return the html that was passed to parser.parse()
+				return (_node as { html: string }).html;
+			})
+		}
 	}) as unknown as Editor;
 
 // A minimal 1×1 red PNG as a data URL used by several tests.

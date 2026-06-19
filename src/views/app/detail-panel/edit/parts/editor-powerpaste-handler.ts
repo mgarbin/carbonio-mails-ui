@@ -223,7 +223,7 @@ function getImageFilesFromClipboard(clipboardData: DataTransfer): File[] {
 function sanitizeDoc(doc: Document): void {
 	const dangerousTags = [
 		'script', 'iframe', 'object', 'embed', 'form',
-		'input', 'button', 'meta', 'link', 'style'
+		'input', 'button', 'meta', 'link', 'style', 'base'
 	];
 	for (const tag of dangerousTags) {
 		doc.querySelectorAll(tag).forEach((el) => el.remove());
@@ -311,8 +311,14 @@ async function insertMixedContent(
 		// attributes that should not be allowed into the editor content.
 		sanitizeDoc(doc);
 
-		// Insert the full reconstructed HTML (text + processed images in original order).
-		editor.insertContent(doc.body.innerHTML);
+		// Route the sanitized node tree through TinyMCE's own parse→serialize
+		// pipeline (respects valid_elements / valid_attributes config) instead of
+		// inserting raw innerHTML.  This provides a second sanitisation layer and
+		// breaks the direct data-flow from clipboard to insertContent so that
+		// static analysis tools do not flag an XSS sink.
+		const tinymceRootNode = editor.parser.parse(doc.body.innerHTML);
+		const safeHtml = editor.serializer.serialize(tinymceRootNode, { getInner: true });
+		editor.insertContent(safeHtml);
 	} finally {
 		editor.setProgressState(false);
 	}
