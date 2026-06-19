@@ -211,6 +211,44 @@ function getImageFilesFromClipboard(clipboardData: DataTransfer): File[] {
 }
 
 /**
+ * Strips potentially dangerous elements and attributes from a parsed Document
+ * before its HTML is passed to editor.insertContent().
+ *
+ * Removed:
+ *  - Elements that can execute scripts or load external resources:
+ *    script, iframe, object, embed, form, input, button, meta, link, style
+ *  - Event-handler attributes (on*) on every remaining element
+ *  - javascript: / vbscript: values in href and src attributes
+ */
+function sanitizeDoc(doc: Document): void {
+	const dangerousTags = [
+		'script', 'iframe', 'object', 'embed', 'form',
+		'input', 'button', 'meta', 'link', 'style'
+	];
+	for (const tag of dangerousTags) {
+		doc.querySelectorAll(tag).forEach((el) => el.remove());
+	}
+
+	const UNSAFE_URL_PATTERN = /^\s*(?:javascript|vbscript)\s*:/i;
+
+	doc.querySelectorAll('*').forEach((el) => {
+		for (const attr of Array.from(el.attributes)) {
+			// Remove event handlers
+			if (attr.name.startsWith('on')) {
+				el.removeAttribute(attr.name);
+				continue;
+			}
+			// Remove javascript:/vbscript: URLs in href/src/action/formaction
+			if (['href', 'src', 'action', 'formaction'].includes(attr.name)) {
+				if (UNSAFE_URL_PATTERN.test(attr.value)) {
+					el.removeAttribute(attr.name);
+				}
+			}
+		}
+	});
+}
+
+/**
  * Processes HTML content that contains a mix of text and locally-sourced images
  * (data: or blob: URL src attributes).
  *
@@ -240,14 +278,8 @@ async function insertMixedContent(
 			const img = localImgElements[i];
 			const src = img.getAttribute('src') ?? '';
 
-			let file: File | null = null;
-			try {
-				file = await srcToFile(src, i);
-			} catch {
-				// If conversion fails remove the broken image from the output.
-				img.parentNode?.removeChild(img);
-				continue;
-			}
+			// srcToFile handles errors internally and returns null on failure.
+			const file = await srcToFile(src, i);
 
 			if (!file) {
 				img.parentNode?.removeChild(img);
@@ -274,6 +306,10 @@ async function insertMixedContent(
 				img.parentNode?.removeChild(img);
 			}
 		}
+
+		// Sanitize the document before inserting to strip dangerous elements /
+		// attributes that should not be allowed into the editor content.
+		sanitizeDoc(doc);
 
 		// Insert the full reconstructed HTML (text + processed images in original order).
 		editor.insertContent(doc.body.innerHTML);
