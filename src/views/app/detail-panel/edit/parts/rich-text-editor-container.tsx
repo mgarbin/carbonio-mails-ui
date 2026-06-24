@@ -28,7 +28,7 @@ import {
 } from 'store/editor';
 import { MailsEditorV2 } from 'types/index.d';
 import * as StyledComp from 'views/app/detail-panel/edit/parts/edit-view-styled-components';
-import { handleEditorPaste } from 'views/app/detail-panel/edit/parts/editor-paste-handler';
+import { handleEditorPowerPaste } from 'views/app/detail-panel/edit/parts/editor-powerpaste-handler';
 import type { TextEditorContainerProps } from 'views/app/detail-panel/edit/parts/text-editor-container';
 import { getFonts, getFontSizesOptions } from 'views/settings/components/utils';
 import { replaceCidUrlWithServiceUrl } from 'store/editor/editor-transformations';
@@ -249,7 +249,7 @@ export const RichTextEditorContainer = ({
 				const editViewWrapper = document.querySelector(
 					'[data-testid="edit-view-editor"]'
 				)?.parentElement;
-				await handleEditorPaste(editor, editorID, event);
+				await handleEditorPowerPaste(editor, editorID, event);
 
 				// Restore scroll position. In firefox scrollbar trips on paste event, see bug [CO-1979]
 				if (editViewWrapper) {
@@ -363,7 +363,6 @@ export const RichTextEditorContainer = ({
 				// View and blocks
 				'visualblocks code'
 			].join(' | '),
-
 			paste_data_images: false,
 			init_instance_callback: (editor: Editor): (() => void) => {
 				if (!editor) return noop;
@@ -371,10 +370,42 @@ export const RichTextEditorContainer = ({
 				// Call the init handler
 				onComposerInit({} as Event, editor);
 
+				let isPasting = false;
+
 				const handlePaste = createPasteHandler(editor, editorId);
-				editor.on('paste', handlePaste);
-				editor.on('input', onTextInput);
-				editor.on('change', onTextChange);
+				const body = editor.getBody();
+				const doc = editor.getDoc();
+
+				// 1) Hard block native paste BEFORE Tiny handles it
+				const onNativePasteCapture = (e: ClipboardEvent) => {
+					isPasting = true;
+					handlePaste(e);
+					queueMicrotask(() => {
+						isPasting = false;
+					});
+				};
+
+				body?.addEventListener('paste', onNativePasteCapture, true);
+				doc?.addEventListener('paste', onNativePasteCapture, true); // extra safety
+
+				editor.on('PastePreProcess', () => {
+					isPasting = true;
+				});
+
+				editor.on('PastePostProcess', () => {
+					isPasting = false;
+				});
+
+				editor.on('input', (e) => {
+					if (isPasting) return; // Skip paste-triggered input
+					onTextInput();
+				});
+
+				editor.on('change', (e) => {
+					if (isPasting) return; // Skip paste-triggered change
+					onTextChange();
+				})
+
 				editor.on('remove', onComposerClose);
 
 				// Handle drag over events
@@ -387,6 +418,8 @@ export const RichTextEditorContainer = ({
 				const resizeObserver = setupResizeObserver(editor);
 				const mutationObserver = setupMutationObserver(editor);
 				return () => {
+					body?.removeEventListener('paste', onNativePasteCapture, true);
+					doc?.removeEventListener('paste', onNativePasteCapture, true);
 					resizeObserver?.disconnect();
 					mutationObserver?.disconnect();
 				};
