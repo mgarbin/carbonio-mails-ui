@@ -145,9 +145,14 @@ const LOCAL_IMG_SRC_REGEX = new RegExp(`src=["'](data:|blob:|https:\\/\\/${MYHOS
  * Matches markers that Microsoft Excel embeds in its clipboard HTML output:
  *  - the Office-Excel XML namespace declaration on the <html> element, or
  *  - the Generator / ProgId <meta> tags in the document <head>.
+ *
+ * The meta-tag branch requires the `name` attribute to be either "Generator"
+ * or "ProgId" so that arbitrary meta tags whose content happens to contain
+ * the word "Excel" do not produce a false positive.  Excel always emits
+ * `name` before `content` in these tags, so the ordering is reliable.
  */
 const EXCEL_MARKER_REGEX =
-	/xmlns:x=["']?urn:schemas-microsoft-com:office:excel["']?|<meta[^>]+content=["']?(?:Microsoft Excel|Excel\.Sheet)["']?/i;
+	/xmlns:x=["']?urn:schemas-microsoft-com:office:excel["']?|<meta[^>]+name=["']?(?:Generator|ProgId)["']?[^>]*content=["']?(?:Microsoft Excel|Excel\.Sheet)["']?/i;
 
 /**
  * Matches Microsoft-Office-specific CSS property names (mso-*) and their
@@ -208,6 +213,10 @@ function inlineStylesFromStyleBlock(doc: Document): void {
 	const cssText = styleElements.map((el) => el.textContent ?? '').join('\n');
 
 	// Parse .className { declarations } rules.
+	// NOTE: The pattern uses `[^}]+` to capture the declaration block.  This
+	// is intentionally simple because Excel never generates CSS with nested
+	// curly braces (e.g. custom properties or @media rules inside a class
+	// rule).  A full CSS parser is not warranted here.
 	const CLASS_RULE_REGEX = /\.([A-Za-z0-9_-]+)\s*\{([^}]+)\}/g;
 	const classRules = new Map<string, string>();
 
@@ -234,8 +243,13 @@ function inlineStylesFromStyleBlock(doc: Document): void {
 			if (inherited.length === 0) return;
 
 			// Existing inline styles are appended last so they take precedence.
+			// Trailing semicolons are stripped before joining so the result
+			// never contains doubled `;;` separators.
 			const existing = (el.getAttribute('style') ?? '').trim();
-			const merged = [...inherited, ...(existing ? [existing] : [])].join('; ');
+			const merged = [...inherited, ...(existing ? [existing] : [])]
+				.map((s) => s.replace(/;\s*$/, ''))
+				.filter(Boolean)
+				.join('; ');
 			el.setAttribute('style', merged);
 		});
 	}
@@ -462,7 +476,11 @@ export const handleEditorPowerPaste = async (
 			event.preventDefault();
 			event.stopPropagation();
 			event.stopImmediatePropagation?.();
-			editor.insertContent(processExcelPaste(html));
+			// Route through TinyMCE's own parse→serialize pipeline so the
+			// editor's valid_elements / valid_attributes config is respected and
+			// the direct data-flow from clipboard HTML to insertContent is broken.
+			const processedHtml = processExcelPaste(html);
+			editor.insertContent(editor.serializer.serialize(editor.parser.parse(processedHtml)));
 		}
 		// For all other table content (e.g. a table copied from a web page)
 		// let TinyMCE handle the paste natively.
