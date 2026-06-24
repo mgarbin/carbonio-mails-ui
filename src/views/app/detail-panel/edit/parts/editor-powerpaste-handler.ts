@@ -146,10 +146,11 @@ const LOCAL_IMG_SRC_REGEX = new RegExp(`src=["'](data:|blob:|https:\\/\\/${MYHOS
  *  - the Office-Excel XML namespace declaration on the <html> element, or
  *  - the Generator / ProgId <meta> tags in the document <head>.
  *
- * The meta-tag branch requires the `name` attribute to be either "Generator"
- * or "ProgId" so that arbitrary meta tags whose content happens to contain
- * the word "Excel" do not produce a false positive.  Excel always emits
- * `name` before `content` in these tags, so the ordering is reliable.
+ * The meta-tag branch matches tags where the `name` attribute (Generator or
+ * ProgId) appears before the `content` attribute in the source.  Excel always
+ * emits attributes in this order so the pattern is reliable for Excel output
+ * while avoiding false positives from meta tags that merely contain the word
+ * "Excel" in an unrelated attribute.
  */
 const EXCEL_MARKER_REGEX =
 	/xmlns:x=["']?urn:schemas-microsoft-com:office:excel["']?|<meta[^>]+name=["']?(?:Generator|ProgId)["']?[^>]*content=["']?(?:Microsoft Excel|Excel\.Sheet)["']?/i;
@@ -217,7 +218,7 @@ function inlineStylesFromStyleBlock(doc: Document): void {
 	// is intentionally simple because Excel never generates CSS with nested
 	// curly braces (e.g. custom properties or @media rules inside a class
 	// rule).  A full CSS parser is not warranted here.
-	const CLASS_RULE_REGEX = /\.([A-Za-z0-9_-]+)\s*\{([^}]+)\}/g;
+	const CLASS_RULE_REGEX = /\.([-A-Za-z0-9_]+)\s*\{([^}]+)\}/g;
 	const classRules = new Map<string, string>();
 
 	let ruleMatch: RegExpExecArray | null;
@@ -261,10 +262,13 @@ function inlineStylesFromStyleBlock(doc: Document): void {
  * Processes HTML pasted from Microsoft Excel:
  *  1. Inlines class-based styles so TinyMCE preserves the original formatting.
  *  2. Sanitizes the document (strips dangerous tags / attributes).
- *
- * Returns the processed `<body>` innerHTML ready for `editor.insertContent()`.
+ *  3. Routes the result through TinyMCE's own parse→serialize pipeline so
+ *     that the editor's valid_elements / valid_attributes configuration is
+ *     respected.  This also provides a second sanitisation layer and breaks
+ *     the direct data-flow from clipboard HTML to insertContent so that
+ *     static analysis tools do not flag an XSS sink.
  */
-function processExcelPaste(html: string): string {
+function processExcelPaste(html: string, editor: Editor): void {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(html, 'text/html');
 
@@ -274,7 +278,7 @@ function processExcelPaste(html: string): string {
 	// Strip dangerous elements and attributes (on*, javascript: URLs, etc.).
 	sanitizeDoc(doc);
 
-	return doc.body.innerHTML;
+	editor.insertContent(editor.serializer.serialize(editor.parser.parse(doc.body.innerHTML)));
 }
 
 /**
@@ -476,11 +480,7 @@ export const handleEditorPowerPaste = async (
 			event.preventDefault();
 			event.stopPropagation();
 			event.stopImmediatePropagation?.();
-			// Route through TinyMCE's own parse→serialize pipeline so the
-			// editor's valid_elements / valid_attributes config is respected and
-			// the direct data-flow from clipboard HTML to insertContent is broken.
-			const processedHtml = processExcelPaste(html);
-			editor.insertContent(editor.serializer.serialize(editor.parser.parse(processedHtml)));
+			processExcelPaste(html, editor);
 		}
 		// For all other table content (e.g. a table copied from a web page)
 		// let TinyMCE handle the paste natively.

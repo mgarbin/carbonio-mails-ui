@@ -415,7 +415,7 @@ describe('inlineStylesFromStyleBlock', () => {
 // ---- processExcelPaste ----
 
 describe('processExcelPaste', () => {
-	it('inlines styles and returns body innerHTML without <style> tags', () => {
+	it('inlines styles and inserts processed HTML (without <style> tags) via the editor', () => {
 		const excelHtml = `
 			<html xmlns:x="urn:schemas-microsoft-com:office:excel">
 			<head><style>.xl65 { color: red; font-size: 12pt; }</style></head>
@@ -423,10 +423,13 @@ describe('processExcelPaste', () => {
 				<table><tr><td class="xl65">Formatted</td></tr></table>
 			</body></html>
 		`;
-		const result = testingPurposeOnly.processExcelPaste(excelHtml);
-		expect(result).toContain('color: red');
-		expect(result).toContain('font-size: 12pt');
-		expect(result).not.toContain('<style');
+		const editor = createMockEditor();
+		testingPurposeOnly.processExcelPaste(excelHtml, editor);
+		expect(editor.insertContent).toHaveBeenCalledTimes(1);
+		const inserted: string = (editor.insertContent as Mock).mock.calls[0][0];
+		expect(inserted).toContain('color: red');
+		expect(inserted).toContain('font-size: 12pt');
+		expect(inserted).not.toContain('<style');
 	});
 
 	it('strips dangerous elements (script, iframe) from the output', () => {
@@ -435,9 +438,12 @@ describe('processExcelPaste', () => {
 			<head><style>.a { color: blue; }</style></head>
 			<body><table><tr><td class="a">OK</td></tr></table><script>alert(1)</script></body></html>
 		`;
-		const result = testingPurposeOnly.processExcelPaste(html);
-		expect(result).not.toContain('<script');
-		expect(result).toContain('color: blue');
+		const editor = createMockEditor();
+		testingPurposeOnly.processExcelPaste(html, editor);
+		expect(editor.insertContent).toHaveBeenCalledTimes(1);
+		const inserted: string = (editor.insertContent as Mock).mock.calls[0][0];
+		expect(inserted).not.toContain('<script');
+		expect(inserted).toContain('color: blue');
 	});
 
 	it('removes mso-* properties from inlined styles', () => {
@@ -446,9 +452,12 @@ describe('processExcelPaste', () => {
 			<head><style>.xl65 { color: green; mso-number-format: General; }</style></head>
 			<body><table><tr><td class="xl65">Cell</td></tr></table></body></html>
 		`;
-		const result = testingPurposeOnly.processExcelPaste(html);
-		expect(result).toContain('color: green');
-		expect(result).not.toContain('mso-number-format');
+		const editor = createMockEditor();
+		testingPurposeOnly.processExcelPaste(html, editor);
+		expect(editor.insertContent).toHaveBeenCalledTimes(1);
+		const inserted: string = (editor.insertContent as Mock).mock.calls[0][0];
+		expect(inserted).toContain('color: green');
+		expect(inserted).not.toContain('mso-number-format');
 	});
 });
 
