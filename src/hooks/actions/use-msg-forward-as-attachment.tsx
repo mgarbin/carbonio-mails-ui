@@ -11,6 +11,7 @@ import { EditViewActions, MessageActionsDescriptors } from 'constants/index';
 import { MIMETYPE_EML } from 'helpers/attachments';
 import { isFocusModeMailView } from 'helpers/external-tabs';
 import { isDraft, isSpam } from 'helpers/folders';
+import { getMessageById } from 'store/emails/store';
 import { ActionFn, UIActionDescriptor, UnsavedAttachment } from 'types/index.d';
 import { createEditBoard } from 'views/app/detail-panel/edit/edit-view-board';
 import { getMessageById } from 'store/emails/store';
