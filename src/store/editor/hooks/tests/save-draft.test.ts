@@ -99,20 +99,60 @@ describe('useEditorDraftSave', () => {
 			await expectedCallsAfterSeconds({ seconds: 1, api: saveDraftApi, calls: 0 });
 			await expectedCallsAfterSeconds({ seconds: 1, api: saveDraftApi, calls: 1 });
 		});
-		it('stops the previous save draft call when invoked again', async () => {
+		it('discards consecutive calls within 3 seconds and fires the debounce from the first call', async () => {
 			const { editor } = setupSaveDraftTest();
 			const { result: hookResult } = setupHook(useSaveDraftFromEditor, {
 				initialProps: [editor.id]
 			});
 			const { saveDraftApi } = setupSaveDraftApi();
 
+			// First call schedules the debounce
 			act(() => hookResult.current.debouncedSaveDraft());
 			await expectedCallsAfterSeconds({ seconds: 0, api: saveDraftApi, calls: 0 });
 			await expectedCallsAfterSeconds({ seconds: 1, api: saveDraftApi, calls: 0 });
+			// Second call at T=1s is within 3s – discarded, timer is NOT reset
 			act(() => hookResult.current.debouncedSaveDraft());
 			await expectedCallsAfterSeconds({ seconds: 0, api: saveDraftApi, calls: 0 });
-			await expectedCallsAfterSeconds({ seconds: 1, api: saveDraftApi, calls: 0 });
+			// Debounce from first call fires at T=2s (1 more second)
 			await expectedCallsAfterSeconds({ seconds: 1, api: saveDraftApi, calls: 1 });
+		});
+	});
+
+	describe('Debounced save draft - consecutive call throttling', () => {
+		it('discards a second call that arrives within 3 seconds of the first', async () => {
+			const { editor } = setupSaveDraftTest();
+			const { result: hookResult } = setupHook(useSaveDraftFromEditor, {
+				initialProps: [editor.id]
+			});
+			const { saveDraftApi } = setupSaveDraftApi();
+
+			// First call – should schedule the debounce
+			act(() => hookResult.current.debouncedSaveDraft());
+			// Second call within 3 seconds – should be discarded
+			await vi.advanceTimersByTimeAsync(1000);
+			act(() => hookResult.current.debouncedSaveDraft());
+
+			// Only the first debounce should fire (2 s after first call)
+			await expectedCallsAfterSeconds({ seconds: 2, api: saveDraftApi, calls: 1 });
+			// No further call after the (discarded) second debounce window
+			await expectedCallsAfterSeconds({ seconds: 2, api: saveDraftApi, calls: 1 });
+		});
+
+		it('allows a second call that arrives more than 3 seconds after the first', async () => {
+			const { editor } = setupSaveDraftTest();
+			const { result: hookResult } = setupHook(useSaveDraftFromEditor, {
+				initialProps: [editor.id]
+			});
+			const { saveDraftApi } = setupSaveDraftApi();
+
+			// First call – debounce fires after 2 s
+			act(() => hookResult.current.debouncedSaveDraft());
+			await expectedCallsAfterSeconds({ seconds: 2, api: saveDraftApi, calls: 1 });
+
+			// Second call – arrives more than 3 s after first (>3 s elapsed)
+			await vi.advanceTimersByTimeAsync(1500); // total elapsed: 3.5 s
+			act(() => hookResult.current.debouncedSaveDraft());
+			await expectedCallsAfterSeconds({ seconds: 2, api: saveDraftApi, calls: 2 });
 		});
 	});
 
